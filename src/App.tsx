@@ -16,9 +16,9 @@ const process = ['Damage Assessment','Repair Planning','Precision Bodywork','Pai
 
 function Intro() {
   const [show, setShow] = useState(() => typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('blackline-intro'))
-  useEffect(() => { if (show) { sessionStorage.setItem('blackline-intro','1'); const t=setTimeout(()=>setShow(false),1900); return()=>clearTimeout(t) } },[show])
+  useEffect(() => { if (show) { sessionStorage.setItem('blackline-intro','1'); const t=setTimeout(()=>setShow(false),2200); return()=>clearTimeout(t) } },[show])
   if (!show) return null
-  return <motion.div className="intro" initial={{opacity:1}} exit={{opacity:0}} animate={{opacity:1}}><div className="intro-scan"/><div className="intro-mark"><span>BLACKLINE</span><small>COLLISION</small></div></motion.div>
+  return <div className="intro" aria-hidden="true"><div className="intro-panels"><i/><i/><i/></div><div className="intro-orbit"/><div className="intro-silhouette"/><div className="intro-scan"/><div className="intro-mark"><span>BLACKLINE</span><small>COLLISION</small><em>PRECISION RESTORATION SYSTEMS</em></div><div className="intro-progress"><span>INITIALIZING</span><i/></div></div>
 }
 
 function Header() {
@@ -27,11 +27,40 @@ function Header() {
   return <header><a className="brand" href="#top"><span>BLACKLINE</span><small>COLLISION</small></a><nav>{links.map(([l,id])=><a key={id} href={`#${id}`}>{l}</a>)}</nav><a className="button small" href="#contact">Free Estimate <ArrowRight size={15}/></a><button className="menu" aria-label="Toggle menu" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button>{open&&<div className="mobile-menu">{links.map(([l,id])=><a key={id} href={`#${id}`} onClick={()=>setOpen(false)}>{l}<ChevronRight/></a>)}</div>}</header>
 }
 
-function Reveal({children,className=''}:{children:React.ReactNode,className?:string}) { return <motion.div className={className} initial={{opacity:0,y:28}} whileInView={{opacity:1,y:0}} viewport={{once:true,margin:'-80px'}} transition={{duration:.7,ease:[.2,.8,.2,1]}}>{children}</motion.div> }
+function Reveal({children,className=''}:{children:React.ReactNode,className?:string}) {
+  const reduced=useReducedMotion()
+  return <motion.div className={`reveal-block ${className}`} initial={reduced?false:{opacity:0,y:42,filter:'blur(7px)'}} whileInView={reduced?undefined:{opacity:1,y:0,filter:'blur(0px)'}} viewport={{once:false,amount:.16,margin:'-45px'}} transition={{duration:.72,ease:[.16,1,.3,1]}}>{children}</motion.div>
+}
+
+function RepairStep({children,className=''}:{children:React.ReactNode,className?:string}) {
+  const reduced=useReducedMotion()
+  return <motion.article className={`repair-step ${className}`} initial={reduced?false:{opacity:.15,y:50,filter:'blur(6px)'}} whileInView={reduced?undefined:{opacity:1,y:0,filter:'blur(0px)'}} viewport={{once:false,amount:.36}} transition={{duration:.65,ease:[.16,1,.3,1]}}>{children}</motion.article>
+}
+
+function Hero(){
+  const reduced=useReducedMotion()
+  const container={hidden:{},show:{transition:{delayChildren:.22,staggerChildren:.085}}}
+  const line={hidden:{y:'112%',opacity:0},show:{y:0,opacity:1,transition:{duration:.82,ease:[.16,1,.3,1] as const}}}
+  const fade={hidden:{opacity:0,y:24},show:{opacity:1,y:0,transition:{duration:.7,ease:[.16,1,.3,1] as const}}}
+  return <section className="hero">
+    <div className="grid-lines"/><div className="hero-glow"/>
+    <div className="hero-stage" aria-hidden="true"><i className="stage-ring r1"/><i className="stage-ring r2"/><i className="stage-beam"/><i className="stage-floor"/><span className="stage-code">BL / 01<br/>CALIBRATION ACTIVE</span></div>
+    <motion.div className="hero-content" variants={container} initial={reduced?false:'hidden'} animate="show">
+      <motion.p className="eyebrow" variants={fade}><span/> PRECISION COLLISION SYSTEMS</motion.p>
+      <h1><span className="hero-line"><motion.span variants={line}>COLLISION DAMAGE</motion.span></span><span className="hero-line"><motion.span variants={line}>IS TEMPORARY.</motion.span></span><span className="hero-line"><motion.span variants={line}><em>PRECISION</em> IS</motion.span></span><span className="hero-line"><motion.span variants={line}>WHAT LASTS.</motion.span></span></h1>
+      <motion.p className="lead" variants={fade}>Advanced collision repair, precise bodywork and flawless refinishing—built to restore your vehicle and your confidence.</motion.p>
+      <motion.div className="actions" variants={fade}><a href="#contact" className="button">Request a Free Estimate <ArrowRight/></a><a href="#repair" className="text-link">Explore Our Process <ArrowDown/></a></motion.div>
+      <motion.div className="hero-notes" variants={fade}><span><Check/> Insurance Claim Assistance</span><span><Check/> Lifetime Paint Warranty</span><span><Check/> Certified Repair Technicians</span></motion.div>
+    </motion.div>
+    <div className="hero-mustang" aria-hidden="true"><img src="/images/blackline-hero.webp" alt=""/><div className="car-highlight"/></div>
+    <div className="scroll-note">SCROLL TO BEGIN THE RESTORATION <i/></div>
+  </section>
+}
 
 function BeforeAfter({label, variant}:{label:string,variant:number}) {
   const [pos,setPos]=useState(52)
-  return <div className={`compare compare-${variant}`}><div className="after-shot"><div className="panel-car restored-car"/></div><div className="before-shot" style={{clipPath:`inset(0 ${100-pos}% 0 0)`}}><div className="panel-car damaged-car"/></div><input aria-label={`${label} before and after comparison`} type="range" min="5" max="95" value={pos} onChange={e=>setPos(+e.target.value)}/><div className="compare-line" style={{left:`${pos}%`}}><span>↔</span></div><b>{label}</b><small className="tag before">BEFORE</small><small className="tag after">AFTER</small></div>
+  const slug=['front','side','paint','dent'][variant-1]
+  return <div className={`compare compare-${variant}`}><div className="after-shot"><img src={`/images/results/${slug}-after.webp`} alt={`${label} professionally restored`} loading="lazy" decoding="async"/></div><div className="before-shot" style={{clipPath:`inset(0 ${100-pos}% 0 0)`}}><img src={`/images/results/${slug}-before.webp`} alt={`${label} before collision repair`} loading="lazy" decoding="async"/></div><input aria-label={`${label} before and after comparison`} type="range" min="5" max="95" value={pos} onChange={e=>setPos(+e.target.value)}/><div className="compare-line" style={{left:`${pos}%`}}><span>↔</span></div><b>{label}</b><small className="tag before">BEFORE</small><small className="tag after">AFTER</small></div>
 }
 
 export default function App(){
@@ -55,14 +84,14 @@ export default function App(){
     return()=>{removeEventListener('scroll',schedule);removeEventListener('resize',schedule);if(frame)cancelAnimationFrame(frame)}
   },[reduced])
   return <><Intro/><Header/><main id="top">
-    <section className="hero"><div className="grid-lines"/><div className="hero-glow"/><div className="hero-content"><p className="eyebrow"><span/> PRECISION COLLISION SYSTEMS</p><h1>COLLISION DAMAGE<br/>IS TEMPORARY.<br/><em>PRECISION</em> IS<br/>WHAT LASTS.</h1><p className="lead">Advanced collision repair, precise bodywork and flawless refinishing—built to restore your vehicle and your confidence.</p><div className="actions"><a href="#contact" className="button">Request a Free Estimate <ArrowRight/></a><a href="#repair" className="text-link">Explore Our Process <ArrowDown/></a></div><div className="hero-notes"><span><Check/> Insurance Claim Assistance</span><span><Check/> Lifetime Paint Warranty</span><span><Check/> Certified Repair Technicians</span></div></div><div className="hero-mustang" aria-hidden="true"><img src="/models/mustang-fallback.jpg" alt=""/></div><div className="scroll-note">SCROLL TO BEGIN THE RESTORATION <i/></div></section>
+    <Hero/>
     <section className="metrics" aria-label="Company highlights"><div><b>15<span>+</span></b><small>Years of Experience</small></div><div><b>2,400<span>+</span></b><small>Vehicles Restored</small></div><div><b>4.9</b><small>Average Rating</small></div><div><ShieldCheck/><small>Lifetime Paint Warranty</small></div></section>
 
     <section id="repair" ref={repairRef} className="repair-story"><div className="sticky-car"><Suspense fallback={<div className="scene-loading">CALIBRATING VISUAL SYSTEM…</div>}><CarScene progressRef={progressRef} invalidateRef={invalidateRef}/></Suspense><div ref={scannerRef} className="scanner"/></div><div ref={counterRef} className="stage-counter">01 <span>/ 04</span></div>
-      <article className="repair-step"><p className="eyebrow">01 — INITIAL DIAGNOSTICS</p><h2>DAMAGE<br/><em>DETECTED.</em></h2><p>We map every visible and hidden impact before a single repair begins.</p><div className="diagnostic"><span>Structural inspection</span><span>Dent analysis</span><span>Paint damage</span><span>Repair estimate</span></div></article>
-      <article className="repair-step right"><p className="eyebrow">02 — CONTROLLED RESTORATION</p><h2>PRECISION<br/><em>REPAIR.</em></h2><p>Factory geometry returns through measured bodywork, disciplined reconstruction and expert hands.</p></article>
-      <article className="repair-step"><p className="eyebrow">03 — COLOR CALIBRATION</p><h2>PAINT &<br/><em>REFINISHING.</em></h2><p>Digitally matched color, controlled application and a finish engineered to disappear into the original.</p><blockquote>“Factory-level color. Flawless finish.”</blockquote></article>
-      <article className="repair-step right restored"><p className="eyebrow">04 — FINAL QUALITY CONTROL</p><h2>FULLY<br/><em>RESTORED.</em></h2><p>Every line, reflection and safety point verified. Your vehicle—returned to its standard.</p><h3>Bring Your Vehicle Back to Perfection.</h3><div className="actions"><a className="button" href="#contact">Request a Free Estimate</a><a className="text-link" href="tel:+15550147290"><Phone/> Call (555) 014-7290</a></div></article>
+      <RepairStep><p className="eyebrow">01 — INITIAL DIAGNOSTICS</p><h2>DAMAGE<br/><em>DETECTED.</em></h2><p>We map every visible and hidden impact before a single repair begins.</p><div className="diagnostic"><span>Structural inspection</span><span>Dent analysis</span><span>Paint damage</span><span>Repair estimate</span></div></RepairStep>
+      <RepairStep className="right"><p className="eyebrow">02 — CONTROLLED RESTORATION</p><h2>PRECISION<br/><em>REPAIR.</em></h2><p>Factory geometry returns through measured bodywork, disciplined reconstruction and expert hands.</p></RepairStep>
+      <RepairStep><p className="eyebrow">03 — COLOR CALIBRATION</p><h2>PAINT &<br/><em>REFINISHING.</em></h2><p>Digitally matched color, controlled application and a finish engineered to disappear into the original.</p><blockquote>“Factory-level color. Flawless finish.”</blockquote></RepairStep>
+      <RepairStep className="right restored"><p className="eyebrow">04 — FINAL QUALITY CONTROL</p><h2>FULLY<br/><em>RESTORED.</em></h2><p>Every line, reflection and safety point verified. Your vehicle—returned to its standard.</p><h3>Bring Your Vehicle Back to Perfection.</h3><div className="actions"><a className="button" href="#contact">Request a Free Estimate</a><a className="text-link" href="tel:+15550147290"><Phone/> Call (555) 014-7290</a></div></RepairStep>
     </section>
 
     <section id="services" className="services wrap"><Reveal><p className="eyebrow">CAPABILITY / 01</p><h2>EVERY DETAIL.<br/><em>RESTORED.</em></h2></Reveal><div className="service-list">{services.map((s,i)=><Reveal key={s[1]} className="service"><span>{s[0]}</span><h3>{s[1]}</h3><p>{s[2]}</p><div className={`service-visual v${i}`}><i/><i/><i/></div><ArrowRight/></Reveal>)}</div></section>
