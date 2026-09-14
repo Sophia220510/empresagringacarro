@@ -1,11 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowRight, Camera, Check, ChevronRight, Menu, Phone, ShieldCheck, Upload, X } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 const CarScene = lazy(() => import('./CarScene'))
-gsap.registerPlugin(ScrollTrigger)
 
 const services = [
   ['01','Collision Repair','Panel integrity restored to exacting tolerances.'],
@@ -25,10 +22,9 @@ function Intro() {
 }
 
 function Header() {
-  const [open,setOpen]=useState(false); const [solid,setSolid]=useState(false)
-  useEffect(()=>{const fn=()=>setSolid(scrollY>40); addEventListener('scroll',fn,{passive:true}); fn(); return()=>removeEventListener('scroll',fn)},[])
+  const [open,setOpen]=useState(false)
   const links=[['Services','services'],['Our Process','process'],['Results','results'],['Reviews','reviews'],['Contact','contact']]
-  return <header className={solid?'solid':''}><a className="brand" href="#top"><span>BLACKLINE</span><small>COLLISION</small></a><nav>{links.map(([l,id])=><a key={id} href={`#${id}`}>{l}</a>)}</nav><a className="button small" href="#contact">Free Estimate <ArrowRight size={15}/></a><button className="menu" aria-label="Toggle menu" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button>{open&&<div className="mobile-menu">{links.map(([l,id])=><a key={id} href={`#${id}`} onClick={()=>setOpen(false)}>{l}<ChevronRight/></a>)}</div>}</header>
+  return <header><a className="brand" href="#top"><span>BLACKLINE</span><small>COLLISION</small></a><nav>{links.map(([l,id])=><a key={id} href={`#${id}`}>{l}</a>)}</nav><a className="button small" href="#contact">Free Estimate <ArrowRight size={15}/></a><button className="menu" aria-label="Toggle menu" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button>{open&&<div className="mobile-menu">{links.map(([l,id])=><a key={id} href={`#${id}`} onClick={()=>setOpen(false)}>{l}<ChevronRight/></a>)}</div>}</header>
 }
 
 function Reveal({children,className=''}:{children:React.ReactNode,className?:string}) { return <motion.div className={className} initial={{opacity:0,y:28}} whileInView={{opacity:1,y:0}} viewport={{once:true,margin:'-80px'}} transition={{duration:.7,ease:[.2,.8,.2,1]}}>{children}</motion.div> }
@@ -39,14 +35,30 @@ function BeforeAfter({label, variant}:{label:string,variant:number}) {
 }
 
 export default function App(){
-  const [progress,setProgress]=useState(0); const repairRef=useRef<HTMLElement>(null); const reduced=useReducedMotion()
-  useEffect(()=>{if(!repairRef.current||reduced)return; const st=ScrollTrigger.create({trigger:repairRef.current,start:'top top',end:'bottom bottom',scrub:.4,onUpdate:s=>setProgress(s.progress)}); return()=>st.kill()},[reduced])
-  const stage=useMemo(()=>Math.min(3,Math.floor(progress*4)),[progress])
+  const repairRef=useRef<HTMLElement>(null); const progressRef=useRef(0); const invalidateRef=useRef<(() => void) | null>(null)
+  const counterRef=useRef<HTMLDivElement>(null); const scannerRef=useRef<HTMLDivElement>(null); const reduced=useReducedMotion()
+  useEffect(()=>{
+    const section=repairRef.current; if(!section)return
+    let frame=0; let previousStage=-1
+    const update=()=>{
+      frame=0
+      const travel=Math.max(1,section.offsetHeight-innerHeight)
+      const progress=reduced?1:Math.min(1,Math.max(0,-section.getBoundingClientRect().top/travel))
+      progressRef.current=progress
+      if(scannerRef.current)scannerRef.current.style.transform=`translate3d(0, ${progress*58}vh, 0)`
+      const stage=Math.min(3,Math.floor(progress*4))
+      if(stage!==previousStage&&counterRef.current){counterRef.current.firstChild!.textContent=`0${stage+1} `;previousStage=stage}
+      invalidateRef.current?.()
+    }
+    const schedule=()=>{if(!frame)frame=requestAnimationFrame(update)}
+    addEventListener('scroll',schedule,{passive:true});addEventListener('resize',schedule,{passive:true});update()
+    return()=>{removeEventListener('scroll',schedule);removeEventListener('resize',schedule);if(frame)cancelAnimationFrame(frame)}
+  },[reduced])
   return <><Intro/><Header/><main id="top">
-    <section className="hero"><div className="grid-lines"/><div className="hero-glow"/><div className="hero-content"><p className="eyebrow"><span/> PRECISION COLLISION SYSTEMS</p><h1>COLLISION DAMAGE<br/>IS TEMPORARY.<br/><em>PRECISION</em> IS<br/>WHAT LASTS.</h1><p className="lead">Advanced collision repair, precise bodywork and flawless refinishing—built to restore your vehicle and your confidence.</p><div className="actions"><a href="#contact" className="button">Request a Free Estimate <ArrowRight/></a><a href="#repair" className="text-link">Explore Our Process <ArrowDown/></a></div><div className="hero-notes"><span><Check/> Insurance Claim Assistance</span><span><Check/> Lifetime Paint Warranty</span><span><Check/> Certified Repair Technicians</span></div></div><Suspense fallback={<div className="scene-loading">CALIBRATING VISUAL SYSTEM…</div>}><CarScene progress={progress}/></Suspense><div className="scroll-note">SCROLL TO BEGIN THE RESTORATION <i/></div></section>
+    <section className="hero"><div className="grid-lines"/><div className="hero-glow"/><div className="hero-content"><p className="eyebrow"><span/> PRECISION COLLISION SYSTEMS</p><h1>COLLISION DAMAGE<br/>IS TEMPORARY.<br/><em>PRECISION</em> IS<br/>WHAT LASTS.</h1><p className="lead">Advanced collision repair, precise bodywork and flawless refinishing—built to restore your vehicle and your confidence.</p><div className="actions"><a href="#contact" className="button">Request a Free Estimate <ArrowRight/></a><a href="#repair" className="text-link">Explore Our Process <ArrowDown/></a></div><div className="hero-notes"><span><Check/> Insurance Claim Assistance</span><span><Check/> Lifetime Paint Warranty</span><span><Check/> Certified Repair Technicians</span></div></div><div className="hero-mustang" aria-hidden="true"><img src="/models/mustang-fallback.jpg" alt=""/></div><div className="scroll-note">SCROLL TO BEGIN THE RESTORATION <i/></div></section>
     <section className="metrics" aria-label="Company highlights"><div><b>15<span>+</span></b><small>Years of Experience</small></div><div><b>2,400<span>+</span></b><small>Vehicles Restored</small></div><div><b>4.9</b><small>Average Rating</small></div><div><ShieldCheck/><small>Lifetime Paint Warranty</small></div></section>
 
-    <section id="repair" ref={repairRef} className="repair-story"><div className="sticky-car"><Suspense fallback={null}><CarScene progress={progress}/></Suspense><div className="scanner" style={{top:`${20+progress*58}%`}}/></div><div className="stage-counter">0{stage+1} <span>/ 04</span></div>
+    <section id="repair" ref={repairRef} className="repair-story"><div className="sticky-car"><Suspense fallback={<div className="scene-loading">CALIBRATING VISUAL SYSTEM…</div>}><CarScene progressRef={progressRef} invalidateRef={invalidateRef}/></Suspense><div ref={scannerRef} className="scanner"/></div><div ref={counterRef} className="stage-counter">01 <span>/ 04</span></div>
       <article className="repair-step"><p className="eyebrow">01 — INITIAL DIAGNOSTICS</p><h2>DAMAGE<br/><em>DETECTED.</em></h2><p>We map every visible and hidden impact before a single repair begins.</p><div className="diagnostic"><span>Structural inspection</span><span>Dent analysis</span><span>Paint damage</span><span>Repair estimate</span></div></article>
       <article className="repair-step right"><p className="eyebrow">02 — CONTROLLED RESTORATION</p><h2>PRECISION<br/><em>REPAIR.</em></h2><p>Factory geometry returns through measured bodywork, disciplined reconstruction and expert hands.</p></article>
       <article className="repair-step"><p className="eyebrow">03 — COLOR CALIBRATION</p><h2>PAINT &<br/><em>REFINISHING.</em></h2><p>Digitally matched color, controlled application and a finish engineered to disappear into the original.</p><blockquote>“Factory-level color. Flawless finish.”</blockquote></article>

@@ -1,63 +1,170 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Float, ContactShadows } from '@react-three/drei'
-import { Suspense, useMemo, useRef } from 'react'
+import { ContactShadows, Environment, Lightformer, useGLTF } from '@react-three/drei'
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react'
 import * as THREE from 'three'
 
-function Wheel({ x, z }: { x: number; z: number }) {
-  return <group position={[x, -.64, z]} rotation={[Math.PI / 2, 0, 0]}>
-    <mesh castShadow><cylinderGeometry args={[.47, .47, .3, 32]} /><meshStandardMaterial color="#050607" roughness={.55} /></mesh>
-    <mesh position={[0, -.16, 0]}><cylinderGeometry args={[.27, .27, .32, 12]} /><meshStandardMaterial color="#6f777d" metalness={1} roughness={.22} /></mesh>
-  </group>
+type ExperienceProps = {
+  progressRef: MutableRefObject<number>
+  invalidateRef: MutableRefObject<(() => void) | null>
 }
 
-function Car({ progress }: { progress: number }) {
+type MaterialGroups = {
+  paint: THREE.MeshPhysicalMaterial[]
+  rims: THREE.MeshStandardMaterial[]
+  lights: THREE.MeshStandardMaterial[]
+  tailLights: THREE.MeshStandardMaterial[]
+}
+
+const matches = (name: string, needles: string[]) => needles.some((needle) => name.includes(needle))
+
+function Mustang({ progressRef, onReady }: { progressRef: MutableRefObject<number>; onReady: () => void }) {
+  const source = useGLTF('/models/mustang-gt.glb')
   const group = useRef<THREE.Group>(null)
-  const body = useRef<THREE.MeshStandardMaterial>(null)
-  const silhouette = useMemo(() => {
-    const s = new THREE.Shape()
-    s.moveTo(-2.2, -.38); s.lineTo(-2.12, .08); s.quadraticCurveTo(-1.98, .42, -1.55, .5)
-    s.lineTo(-.92, .58); s.quadraticCurveTo(-.55, 1.1, -.18, 1.22)
-    s.quadraticCurveTo(.52, 1.34, .98, .93); s.lineTo(1.45, .56)
-    s.quadraticCurveTo(2.05, .48, 2.22, .12); s.lineTo(2.18, -.38); s.closePath()
-    return s
-  }, [])
-  const glass = useMemo(() => {
-    const s = new THREE.Shape()
-    s.moveTo(-.79, .63); s.lineTo(-.29, 1.11); s.quadraticCurveTo(.31, 1.2, .73, .92)
-    s.lineTo(1.13, .6); s.closePath(); return s
-  }, [])
-  useFrame((state) => {
-    if (!group.current || !body.current) return
-    group.current.rotation.y = -.34 + progress * .44 + Math.sin(state.clock.elapsedTime * .2) * .018
-    group.current.position.y = Math.sin(state.clock.elapsedTime * .6) * .018
-    body.current.roughness = THREE.MathUtils.lerp(.62, .09, Math.max(0, (progress - .48) * 2))
+  const disposeTimer = useRef<number | undefined>(undefined)
+  const model = useMemo(() => {
+    const scene = source.scene.clone(true)
+    const groups: MaterialGroups = { paint: [], rims: [], lights: [], tailLights: [] }
+    const unique = {
+      paint: new Set<THREE.MeshPhysicalMaterial>(), rims: new Set<THREE.MeshStandardMaterial>(),
+      lights: new Set<THREE.MeshStandardMaterial>(), tailLights: new Set<THREE.MeshStandardMaterial>(),
+    }
+    scene.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return
+      object.castShadow = true
+      object.receiveShadow = true
+      const originals = Array.isArray(object.material) ? object.material : [object.material]
+      const materials = originals.map((item) => item.clone())
+      object.material = Array.isArray(object.material) ? materials : materials[0]
+      materials.forEach((material) => {
+        const name = `${object.name} ${material.name}`.toLowerCase()
+        material.envMapIntensity = 1.55
+        if (matches(name, ['carpaint'])) unique.paint.add(material as THREE.MeshPhysicalMaterial)
+        if (matches(name, ['frdperofrmcrim', 'aluminium_clean2', 'aluminium_clean3'])) unique.rims.add(material as THREE.MeshStandardMaterial)
+        if (matches(name, ['headlight'])) unique.lights.add(material as THREE.MeshStandardMaterial)
+        if (matches(name, ['tailight_reddrk', 'tailight_redglass'])) unique.tailLights.add(material as THREE.MeshStandardMaterial)
+      })
+    })
+    const bounds = new THREE.Box3().setFromObject(scene)
+    const size = bounds.getSize(new THREE.Vector3())
+    const center = bounds.getCenter(new THREE.Vector3())
+    const scale = 5.8 / Math.max(size.x, size.z)
+    scene.position.set(-center.x, -bounds.min.y, -center.z)
+    groups.paint = [...unique.paint]
+    groups.rims = [...unique.rims]
+    groups.lights = [...unique.lights]
+    groups.tailLights = [...unique.tailLights]
+    groups.paint.forEach((material) => {
+      material.color.set('#151719'); material.metalness = .78; material.roughness = .34
+      material.clearcoat = 1; material.clearcoatRoughness = .08; material.vertexColors = false
+    })
+    groups.rims.forEach((material) => { material.color.set('#343a3f'); material.metalness = .9; material.roughness = .24 })
+    groups.lights.forEach((material) => { material.emissive = new THREE.Color('#eaf7ff'); material.emissiveIntensity = 0 })
+    groups.tailLights.forEach((material) => { material.emissive = new THREE.Color('#e12828'); material.emissiveIntensity = .25 })
+    return { scene, scale, materials: groups }
+  }, [source.scene])
+
+  useEffect(() => {
+    if (disposeTimer.current) window.clearTimeout(disposeTimer.current)
+    onReady()
+    return () => {
+      disposeTimer.current = window.setTimeout(() => model.scene.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        materials.forEach((material) => material.dispose())
+      }), 0)
+    }
+  }, [model, onReady])
+
+  useFrame(({ camera }) => {
+    const p = progressRef.current
+    const eased = THREE.MathUtils.smoothstep(p, 0, 1)
+    if (group.current) {
+      group.current.rotation.y = THREE.MathUtils.lerp(-.48, .52, eased)
+      group.current.rotation.z = THREE.MathUtils.lerp(-.015, 0, eased)
+      group.current.position.x = THREE.MathUtils.lerp(.32, -.18, eased)
+      group.current.scale.setScalar(model.scale * THREE.MathUtils.lerp(1.12, .9, eased))
+    }
+    camera.position.set(
+      THREE.MathUtils.lerp(7.4, 6.6, eased),
+      THREE.MathUtils.lerp(2.35, 2.7, eased),
+      THREE.MathUtils.lerp(6.1, 8.4, eased),
+    )
+    camera.lookAt(0, .75, 0)
+    model.materials.paint.forEach((material) => {
+      material.color.setRGB(THREE.MathUtils.lerp(.055, .085, eased), THREE.MathUtils.lerp(.045, .09, eased), THREE.MathUtils.lerp(.045, .1, eased))
+      material.roughness = THREE.MathUtils.lerp(.38, .16, THREE.MathUtils.smoothstep(p, .42, .86))
+    })
+    const headlight = THREE.MathUtils.smoothstep(p, .72, .94) * 4.2
+    model.materials.lights.forEach((material) => { material.emissiveIntensity = headlight })
+    model.materials.tailLights.forEach((material) => { material.emissiveIntensity = .35 + headlight * .65 })
   })
-  const dark = new THREE.Color('#0a0c0e')
-  return <Float speed={1.1} rotationIntensity={.04} floatIntensity={.08}>
-    <group ref={group} scale={1.08} position={[.25, -.12, 0]}>
-      <mesh castShadow position={[0, 0, -.8]}>
-        <extrudeGeometry args={[silhouette, { depth: 1.6, bevelEnabled: true, bevelThickness: .1, bevelSize: .1, bevelSegments: 5 }]} />
-        <meshStandardMaterial ref={body} color={dark} metalness={.9} roughness={.25} />
-      </mesh>
-      <mesh position={[0, 0, .835]}><shapeGeometry args={[glass]} /><meshPhysicalMaterial color="#10202a" transmission={.22} metalness={.65} roughness={.08} clearcoat={1} /></mesh>
-      <mesh position={[0, -.29, .925]}><boxGeometry args={[3.5,.06,.025]} /><meshStandardMaterial color="#111518" metalness={.9} roughness={.16} /></mesh>
-      {[-1.48,1.42].flatMap(x => [-.82,.82].map(z => <Wheel key={`${x}${z}`} x={x} z={z}/>))}
-      <mesh position={[-2.13,.08,.72]} rotation={[0,0,-.12]}><boxGeometry args={[.1,.18,.43]} /><meshStandardMaterial color="#e12828" emissive="#e12828" emissiveIntensity={progress > .7 ? 3 : .3} /></mesh>
-      <mesh position={[2.14,.12,.72]} rotation={[0,0,.18]}><boxGeometry args={[.1,.13,.38]} /><meshStandardMaterial color="#eaf7ff" emissive="#ffffff" emissiveIntensity={progress > .78 ? 4 : .2} /></mesh>
-      <mesh position={[0,-.02,.94]}><boxGeometry args={[3.35,.025,.025]} /><meshBasicMaterial color={progress < .3 ? '#e12828' : '#d7eef8'} transparent opacity={.68} /></mesh>
-    </group>
-  </Float>
+
+  return <group ref={group} rotation={[0, -.48, 0]} scale={model.scale}><primitive object={model.scene} /></group>
 }
 
-export default function CarScene({ progress }: { progress: number }) {
-  return <div className="car-canvas" aria-hidden="true"><Canvas dpr={[1, 1.5]} camera={{ position: [5, 2.1, 5.8], fov: 38 }} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}>
-    <Suspense fallback={null}>
-      <ambientLight intensity={.18} />
-      <spotLight position={[-4,4,3]} color={progress < .45 ? '#e12828' : '#ddecf5'} intensity={70} angle={.38} penumbra={1} castShadow />
-      <pointLight position={[4,1,-2]} color="#b9ddf2" intensity={progress > .45 ? 24 : 4} />
-      <Car progress={progress} />
-      <ContactShadows position={[0,-.83,0]} opacity={.72} scale={8} blur={2.5} far={4} />
-      <Environment preset="warehouse" environmentIntensity={.24} />
-    </Suspense>
-  </Canvas></div>
+function Scene({ progressRef, onReady }: { progressRef: MutableRefObject<number>; onReady: () => void }) {
+  return <>
+    <ambientLight intensity={.7} color="#c9d7e2" />
+    <directionalLight position={[5, 7, 6]} color="#f3f7fa" intensity={3.2} castShadow shadow-mapSize={[1024, 1024]} />
+    <directionalLight position={[-5, 3, 1]} color="#a8c6df" intensity={2.1} />
+    <spotLight position={[-4, 4, -5]} color="#e12828" intensity={55} angle={.48} penumbra={1} />
+    <pointLight position={[1, .8, 5]} color="#eaf7ff" intensity={8} distance={10} />
+    <Suspense fallback={null}><Mustang progressRef={progressRef} onReady={onReady} /></Suspense>
+    <ContactShadows position={[0, -.02, 0]} scale={9} opacity={.72} blur={2.4} far={4.5} resolution={512} />
+    <Environment resolution={64}>
+      <Lightformer intensity={3} color="#ffffff" position={[0, 5, -4]} scale={[8, 1, 1]} />
+      <Lightformer intensity={2} color="#dceaff" position={[4, 2, 1]} rotation={[0, -Math.PI / 2, 0]} scale={[5, 1, 1]} />
+      <Lightformer intensity={2} color="#e12828" position={[-4, 1, -2]} rotation={[0, Math.PI / 2, 0]} scale={[3, .5, 1]} />
+    </Environment>
+  </>
+}
+
+function Fallback() {
+  return <div className="mustang-fallback" role="img" aria-label="Ford Mustang GT in a collision repair studio"><img src="/models/mustang-fallback.jpg" alt="Ford Mustang GT studio preview" /></div>
+}
+
+class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  render() { return this.state.failed ? this.props.fallback : this.props.children }
+}
+
+function canRender3D() {
+  if (typeof window === 'undefined' || window.innerWidth < 768) return false
+  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) return false
+  try { return Boolean(document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl')) } catch { return false }
+}
+
+export default function CarScene({ progressRef, invalidateRef }: ExperienceProps) {
+  const [enabled] = useState(canRender3D)
+  const [ready, setReady] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const [engaged, setEngaged] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
+  const readyCallback = useMemo(() => () => setReady(true), [])
+  useEffect(() => {
+    if (!root.current) return
+    const observer = new IntersectionObserver(([entry]) => {
+      setVisible(entry.isIntersecting)
+      if (entry.isIntersecting) setEngaged(true)
+    }, { rootMargin: '150px' })
+    observer.observe(root.current)
+    return () => observer.disconnect()
+  }, [])
+  if (!enabled) return <div ref={root} className="car-canvas fallback-only"><Fallback /></div>
+  return <div ref={root} className={`car-canvas ${ready ? 'model-ready' : 'model-loading'}`}>
+    <Fallback />
+    {engaged && !ready && <div className="model-status"><i /> LOADING VEHICLE</div>}
+    {engaged && <SceneBoundary fallback={<Fallback />}>
+      <Canvas
+        frameloop={visible ? 'demand' : 'never'} dpr={[1, 1.45]} shadows
+        camera={{ fov: 36, near: .1, far: 80, position: [7.4, 2.35, 6.1] }}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        onCreated={({ gl, invalidate }) => {
+          gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.28
+          gl.outputColorSpace = THREE.SRGBColorSpace; invalidateRef.current = invalidate
+        }}
+      ><Scene progressRef={progressRef} onReady={readyCallback} /></Canvas>
+    </SceneBoundary>}
+  </div>
 }

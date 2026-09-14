@@ -1,16 +1,70 @@
-@media (max-width: 600px) {
-  .hero h1 {
-    font-size: clamp(42px, 12vw, 54px);
-    letter-spacing: -0.035em;
-  }
+html { scroll-behavior: auto; }
+body { cursor: auto; }
+a, button, select, input[type="range"] { cursor: pointer; }
+input, textarea { cursor: text; }
 
-  .hero-notes span:nth-child(n + 2) {
-    display: none;
-  }
+header {
+  background: linear-gradient(to bottom, rgba(7, 8, 9, .92), rgba(7, 8, 9, 0));
 }
 
-@media (pointer: fine) {
-  body { cursor: crosshair; }
-  a, button, input, select, textarea { cursor: pointer; }
-  input, textarea { cursor: text; }
+.hero-mustang {
+  position: absolute;
+  inset: 11% -3% 8% 43%;
+  z-index: -1;
+  overflow: hidden;
+  opacity: .72;
+  mask-image: linear-gradient(90deg, transparent 0, #000 24%, #000 82%, transparent 100%);
+}
+
+.hero-mustang::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(7, 8, 9, .72), transparent 45%), radial-gradient(circle, transparent 20%, rgba(7, 8, 9, .45) 75%);
+}
+
+.hero-mustang img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(.38) contrast(1.55) grayscale(1);
+  transform: scale(1.08);
+}
+
+.car-canvas { background: radial-gradient(ellipse at 58% 49%, #252a2e 0, #111518 42%, #070809 76%); }
+.car-canvas canvas { position: relative; z-index: 2; opacity: 0; transition: opacity .45s ease; }
+.car-canvas.model-ready canvas { opacity: 1; }
+.mustang-fallback { position: absolute; inset: 0; z-index: 1; overflow: hidden; transition: opacity .45s ease; }
+.model-ready .mustang-fallback { opacity: 0; }
+.mustang-fallback img { width: 100%; height: 100%; object-fit: cover; filter: brightness(.38) contrast(1.5) grayscale(1); mix-blend-mode: luminosity; }
+.mustang-fallback::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 55% 45%, transparent 8%, rgba(7,8,9,.38) 65%), linear-gradient(90deg, rgba(7,8,9,.8), transparent 42%); }
+.model-status { position: absolute; z-index: 3; right: 7%; bottom: 8%; color: #aab2b9; font-size: 9px; letter-spacing: .17em; display: flex; gap: 10px; align-items: center; }
+.model-status i { width: 26px; height: 1px; background: #e12828; animation: loading-line 1.2s ease-in-out infinite alternate; transform-origin: left; }
+@keyframes loading-line { from { transform: scaleX(.2); } to { transform: scaleX(1); } }
+
+.scanner { top: 20% !important; will-change: transform; transition: none !important; }
+.fallback-only .mustang-fallback { opacity: 1; }
+.repair-step { background: linear-gradient(90deg, rgba(7,8,9,.96), rgba(7,8,9,.72) 72%, transparent); padding-right: 38px; }
+.repair-step.right { background: linear-gradient(270deg, rgba(7,8,9,.96), rgba(7,8,9,.72) 72%, transparent); padding-left: 38px; padding-right: 0; }
+
+@media (max-width: 900px) {
+  .hero-mustang { inset: 5% -28% 36% 13%; opacity: .58; }
+  .sticky-car .car-canvas { inset: 0 !important; }
+  .mustang-fallback img { object-position: 56% 50%; transform: scale(1.12); }
+}
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: clamp(42px, 12vw, 54px); letter-spacing: -.035em; }
+  .hero-notes span:nth-child(n + 2) { display: none; }
+  .hero-mustang { inset: 0 -42% 43% -5%; }
+  .repair-story { height: 365vh; }
+  .repair-step, .repair-step.right { padding-left: 0; padding-right: 0; }
+  .repair-step:nth-of-type(2) { top: 90vh; }
+  .repair-step:nth-of-type(3) { top: 180vh; }
+  .repair-step:nth-of-type(4) { top: 270vh; }
+  .mustang-fallback img { object-position: 58% 50%; transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .model-status i { animation: none; }
 }
