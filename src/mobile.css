@@ -1,0 +1,16 @@
+@media (max-width: 600px) {
+  .hero h1 {
+    font-size: clamp(42px, 12vw, 54px);
+    letter-spacing: -0.035em;
+  }
+
+  .hero-notes span:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+@media (pointer: fine) {
+  body { cursor: crosshair; }
+  a, button, input, select, textarea { cursor: pointer; }
+  input, textarea { cursor: text; }
+}
