@@ -15,7 +15,9 @@ npm run dev
 npm run build
 ```
 
-The estimate form and image upload are intentionally demonstration-only and ready to be connected to a form or email backend.
+Business contact details, verified reviews, certifications, map data and the form endpoint are centralized in `src/config.ts`. Empty values are intentionally not presented as real business claims. Configure `formEndpoint` to activate multipart estimate requests and photo delivery.
+
+Generated workshop photography is stored in `public/images/workshop/` and used for the editorial service, technology and final-inspection compositions.
 
 ## 3D vehicle attribution
 

@@ -102,7 +102,7 @@ function Mustang({ progressRef, onReady }: { progressRef: MutableRefObject<numbe
   return <group ref={group} rotation={[0, -.48, 0]} scale={model.scale}><primitive object={model.scene} /></group>
 }
 
-function Scene({ progressRef, onReady }: { progressRef: MutableRefObject<number>; onReady: () => void }) {
+function Scene({ progressRef, onReady, lowPower }: { progressRef: MutableRefObject<number>; onReady: () => void; lowPower: boolean }) {
   return <>
     <ambientLight intensity={.7} color="#c9d7e2" />
     <directionalLight position={[5, 7, 6]} color="#f3f7fa" intensity={3.2} castShadow shadow-mapSize={[1024, 1024]} />
@@ -110,7 +110,7 @@ function Scene({ progressRef, onReady }: { progressRef: MutableRefObject<number>
     <spotLight position={[-4, 4, -5]} color="#e12828" intensity={55} angle={.48} penumbra={1} />
     <pointLight position={[1, .8, 5]} color="#eaf7ff" intensity={8} distance={10} />
     <Suspense fallback={null}><Mustang progressRef={progressRef} onReady={onReady} /></Suspense>
-    <ContactShadows position={[0, -.02, 0]} scale={9} opacity={.72} blur={2.4} far={4.5} resolution={512} />
+    <ContactShadows position={[0, -.02, 0]} scale={9} opacity={.72} blur={2.4} far={4.5} resolution={lowPower ? 256 : 512} />
     <Environment resolution={64}>
       <Lightformer intensity={3} color="#ffffff" position={[0, 5, -4]} scale={[8, 1, 1]} />
       <Lightformer intensity={2} color="#dceaff" position={[4, 2, 1]} rotation={[0, -Math.PI / 2, 0]} scale={[5, 1, 1]} />
@@ -130,13 +130,14 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 function canRender3D() {
-  if (typeof window === 'undefined' || window.innerWidth < 768) return false
-  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) return false
+  if (typeof window === 'undefined') return false
+  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2) return false
   try { return Boolean(document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl')) } catch { return false }
 }
 
 export default function CarScene({ progressRef, invalidateRef }: ExperienceProps) {
   const [enabled] = useState(canRender3D)
+  const [lowPower] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 768 || Boolean(navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)))
   const [ready, setReady] = useState(false)
   const [visible, setVisible] = useState(false)
   const [engaged, setEngaged] = useState(false)
@@ -157,14 +158,14 @@ export default function CarScene({ progressRef, invalidateRef }: ExperienceProps
     {engaged && !ready && <div className="model-status"><i /> LOADING VEHICLE</div>}
     {engaged && <SceneBoundary fallback={<Fallback />}>
       <Canvas
-        frameloop={visible ? 'demand' : 'never'} dpr={[1, 1.45]} shadows
+        frameloop={visible ? 'demand' : 'never'} dpr={lowPower ? [1, 1.15] : [1, 1.45]} shadows={!lowPower}
         camera={{ fov: 36, near: .1, far: 80, position: [7.4, 2.35, 6.1] }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         onCreated={({ gl, invalidate }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.28
           gl.outputColorSpace = THREE.SRGBColorSpace; invalidateRef.current = invalidate
         }}
-      ><Scene progressRef={progressRef} onReady={readyCallback} /></Canvas>
+      ><Scene progressRef={progressRef} onReady={readyCallback} lowPower={lowPower} /></Canvas>
     </SceneBoundary>}
   </div>
 }
