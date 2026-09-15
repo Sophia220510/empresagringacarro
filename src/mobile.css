@@ -94,7 +94,14 @@ header {
 .model-status i { width: 26px; height: 1px; background: #e12828; animation: loading-line 1.2s ease-in-out infinite alternate; transform-origin: left; }
 @keyframes loading-line { from { transform: scaleX(.2); } to { transform: scaleX(1); } }
 
-.scanner { top: 20% !important; will-change: transform; transition: none !important; }
+.scene-placeholder { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: radial-gradient(ellipse at 58% 48%, #272d31 0, #111518 38%, #070809 74%); }
+.scene-placeholder::before { content: ""; position: absolute; width: 56%; aspect-ratio: 1; border: 1px solid rgba(170,178,185,.12); border-radius: 50%; right: 17%; top: 17%; box-shadow: 0 0 0 80px rgba(170,178,185,.018), 0 0 90px rgba(225,40,40,.08); animation: placeholder-breathe 1.5s ease-in-out infinite alternate; }
+.scene-placeholder i { position: absolute; display: block; height: 1px; background: linear-gradient(90deg, transparent, rgba(170,178,185,.22), transparent); left: 24%; right: 8%; top: 39%; }
+.scene-placeholder i:nth-child(2) { top: 52%; opacity: .45; }
+.scene-placeholder i:nth-child(3) { top: 65%; opacity: .22; }
+@keyframes placeholder-breathe { to { transform: scale(1.035); opacity: .72; } }
+.model-ready .scene-placeholder { opacity: 0; visibility: hidden; transition: opacity .35s, visibility .35s; }
+.repair-sweep { position: absolute; z-index: 3; top: 8%; bottom: 5%; left: 40%; width: 18vw; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255,255,255,.035), rgba(225,40,40,.11), rgba(255,255,255,.055), transparent); filter: blur(28px); opacity: .8; will-change: transform; transform: translate3d(-60vw,0,0) rotate(-12deg); }
 .fallback-only .mustang-fallback { opacity: 1; }
 .repair-step { background: linear-gradient(90deg, rgba(7,8,9,.96), rgba(7,8,9,.72) 72%, transparent); padding-right: 38px; }
 .repair-step.right { background: linear-gradient(270deg, rgba(7,8,9,.96), rgba(7,8,9,.72) 72%, transparent); padding-left: 38px; padding-right: 0; }

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 
-const [, , port = '9229', width = '1440', height = '1000', output = 'visual-check.png', anchor = '#repair', progress = '0'] = process.argv
+const [, , port = '9229', width = '1440', height = '1000', output = 'visual-check.png', anchor = '#repair', progress = '0', postScrollWait = '5000'] = process.argv
 const target = await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(`http://127.0.0.1:4173/${anchor}`)}`, { method: 'PUT' }).then((response) => response.json())
 const socket = new WebSocket(target.webSocketDebuggerUrl)
 const pending = new Map()
@@ -31,7 +31,7 @@ await call('Emulation.setDeviceMetricsOverride', { width: Number(width), height:
 await call('Page.navigate', { url: 'http://127.0.0.1:4173/' })
 await new Promise((resolve) => setTimeout(resolve, 3000))
 await call('Runtime.evaluate', { expression: `(() => { const el = document.querySelector('${anchor}'); if (el) scrollTo(0, el.offsetTop + (el.offsetHeight - innerHeight) * ${Number(progress)}) })()` })
-await new Promise((resolve) => setTimeout(resolve, 5000))
+await new Promise((resolve) => setTimeout(resolve, Number(postScrollWait)))
 const screenshot = await call('Page.captureScreenshot', { format: 'png', fromSurface: true })
 fs.writeFileSync(output, Buffer.from(screenshot.data, 'base64'))
 const overflow = await call('Runtime.evaluate', { expression: 'document.documentElement.scrollWidth - document.documentElement.clientWidth', returnByValue: true })

@@ -65,7 +65,7 @@ function BeforeAfter({label, variant}:{label:string,variant:number}) {
 
 export default function App(){
   const repairRef=useRef<HTMLElement>(null); const progressRef=useRef(0); const invalidateRef=useRef<(() => void) | null>(null)
-  const counterRef=useRef<HTMLDivElement>(null); const scannerRef=useRef<HTMLDivElement>(null); const reduced=useReducedMotion()
+  const counterRef=useRef<HTMLDivElement>(null); const sweepRef=useRef<HTMLDivElement>(null); const reduced=useReducedMotion()
   useEffect(()=>{
     const section=repairRef.current; if(!section)return
     let frame=0; let previousStage=-1
@@ -74,7 +74,7 @@ export default function App(){
       const travel=Math.max(1,section.offsetHeight-innerHeight)
       const progress=reduced?1:Math.min(1,Math.max(0,-section.getBoundingClientRect().top/travel))
       progressRef.current=progress
-      if(scannerRef.current)scannerRef.current.style.transform=`translate3d(0, ${progress*58}vh, 0)`
+      if(sweepRef.current)sweepRef.current.style.transform=`translate3d(${progress*120-60}vw, 0, 0) rotate(-12deg)`
       const stage=Math.min(3,Math.floor(progress*4))
       if(stage!==previousStage&&counterRef.current){counterRef.current.firstChild!.textContent=`0${stage+1} `;previousStage=stage}
       invalidateRef.current?.()
@@ -87,7 +87,7 @@ export default function App(){
     <Hero/>
     <section className="metrics" aria-label="Company highlights"><div><b>15<span>+</span></b><small>Years of Experience</small></div><div><b>2,400<span>+</span></b><small>Vehicles Restored</small></div><div><b>4.9</b><small>Average Rating</small></div><div><ShieldCheck/><small>Lifetime Paint Warranty</small></div></section>
 
-    <section id="repair" ref={repairRef} className="repair-story"><div className="sticky-car"><Suspense fallback={<div className="scene-loading">CALIBRATING VISUAL SYSTEM…</div>}><CarScene progressRef={progressRef} invalidateRef={invalidateRef}/></Suspense><div ref={scannerRef} className="scanner"/></div><div ref={counterRef} className="stage-counter">01 <span>/ 04</span></div>
+    <section id="repair" ref={repairRef} className="repair-story"><div className="sticky-car"><Suspense fallback={<div className="scene-loading">CALIBRATING VISUAL SYSTEM…</div>}><CarScene progressRef={progressRef} invalidateRef={invalidateRef}/></Suspense><div ref={sweepRef} className="repair-sweep"/></div><div ref={counterRef} className="stage-counter">01 <span>/ 04</span></div>
       <RepairStep><p className="eyebrow">01 — INITIAL DIAGNOSTICS</p><h2>DAMAGE<br/><em>DETECTED.</em></h2><p>We map every visible and hidden impact before a single repair begins.</p><div className="diagnostic"><span>Structural inspection</span><span>Dent analysis</span><span>Paint damage</span><span>Repair estimate</span></div></RepairStep>
       <RepairStep className="right"><p className="eyebrow">02 — CONTROLLED RESTORATION</p><h2>PRECISION<br/><em>REPAIR.</em></h2><p>Factory geometry returns through measured bodywork, disciplined reconstruction and expert hands.</p></RepairStep>
       <RepairStep><p className="eyebrow">03 — COLOR CALIBRATION</p><h2>PAINT &<br/><em>REFINISHING.</em></h2><p>Digitally matched color, controlled application and a finish engineered to disappear into the original.</p><blockquote>“Factory-level color. Flawless finish.”</blockquote></RepairStep>

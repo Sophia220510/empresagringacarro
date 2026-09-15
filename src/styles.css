@@ -399,16 +399,6 @@ header .small {
   inset: 0 8% 0 22%;
   filter: saturate(0.9);
 }
-.scanner {
-  position: absolute;
-  left: 20%;
-  right: 12%;
-  height: 1px;
-  background: #e12828;
-  box-shadow: 0 0 22px 4px #e1282870;
-  opacity: calc(1 - var(--progress, 0));
-  transition: top 0.05s;
-}
 .stage-counter {
   position: sticky;
   top: calc(100vh - 90px);

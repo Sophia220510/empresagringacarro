@@ -120,7 +120,7 @@ function Scene({ progressRef, onReady }: { progressRef: MutableRefObject<number>
 }
 
 function Fallback() {
-  return <div className="mustang-fallback" role="img" aria-label="Ford Mustang GT in a collision repair studio"><img src="/models/mustang-fallback.jpg" alt="Ford Mustang GT studio preview" /></div>
+  return <div className="mustang-fallback" role="img" aria-label="Classic American muscle car in a collision repair studio"><img src="/images/blackline-hero.webp" alt="Black classic American muscle car in a premium studio" /></div>
 }
 
 class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
@@ -153,7 +153,7 @@ export default function CarScene({ progressRef, invalidateRef }: ExperienceProps
   }, [])
   if (!enabled) return <div ref={root} className="car-canvas fallback-only"><Fallback /></div>
   return <div ref={root} className={`car-canvas ${ready ? 'model-ready' : 'model-loading'}`}>
-    <Fallback />
+    {!ready && <div className="scene-placeholder" aria-hidden="true"><i/><i/><i/></div>}
     {engaged && !ready && <div className="model-status"><i /> LOADING VEHICLE</div>}
     {engaged && <SceneBoundary fallback={<Fallback />}>
       <Canvas
